@@ -1,0 +1,2 @@
+rke2_token:           # Crie um token para conectar os nodes aos servidores masters i.e: defaultSecret12345
+rke2_agent_token:     # Crie um token para conectar os nodes aos servidores masters i.e: agentSecret54321

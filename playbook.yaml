@@ -1,0 +1,78 @@
+- name: Deploy RKE2
+  hosts: all
+  become: yes
+  roles:
+    - role: lablabs.rke2
+
+- name: Configure master server of RKE2
+  hosts: masters
+  become: true
+  become_user: ubuntu
+  tasks:
+    - name: Create folder ~/.kube
+      file:
+        path: "{{ ansible_env.HOME }}/.kube"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+
+    - name: Create folder config
+      file:
+        path: "{{ ansible_env.HOME }}/.kube/config"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+
+    - name: Copy rke2.yaml file to ~/.kube/config
+      shell: "sudo cat /etc/rancher/rke2/rke2.yaml > {{ ansible_env.HOME }}/.kube/config/rke2.yaml"
+      become: true
+
+    - name: Add bin directory to PATH environment
+      lineinfile:
+        dest: "{{ ansible_env.HOME }}/.bashrc"
+        line: "export PATH=$PATH:/var/lib/rancher/rke2/bin/"
+        state: present
+        create: yes
+      become: true
+      become_user: ubuntu
+
+    - name: Add environment variable for KUBECONFIG
+      lineinfile:
+        dest: "{{ ansible_env.HOME }}/.bashrc"
+        line: "export KUBECONFIG={{ ansible_env.HOME }}/.kube/config/rke2.yaml"
+        state: present
+        create: yes
+
+    - name: Reload .bashrc for apply changes
+      shell: ". {{ ansible_env.HOME }}/.bashrc"
+
+- name: Install necessary packages for RKE2 Kubernetes clusters
+  hosts: all
+  become: true
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages for RKE2
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gnupg-agent
+        - software-properties-common
+
+    - name: Ensure jq is installed (optional, used for parsing JSON)
+      apt:
+        name: jq
+        state: present
+      become: yes
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_release == "jammy"
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3

@@ -1,0 +1,4 @@
+---
+ansible_user: pivert
+rke2_token: ""
+rke2_version: v1.28.8+rke2r1
